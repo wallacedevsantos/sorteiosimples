@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Dice1, RotateCcw, Copy } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ const NumberRaffle = () => {
   const [avoidRepeats, setAvoidRepeats] = useState(true);
   const [isRaffling, setIsRaffling] = useState(false);
   const [results, setResults] = useState<number[]>([]);
+  const [showModal, setShowModal] = useState(false);
   const [history, setHistory] = useState<{ min: number; max: number; results: number[]; timestamp: Date }[]>([]);
   const { toast } = useToast();
 
@@ -62,6 +64,7 @@ const NumberRaffle = () => {
 
     setIsRaffling(true);
     setResults([]);
+    setShowModal(true);
 
     // Animação de suspense
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -102,6 +105,7 @@ const NumberRaffle = () => {
   const resetRaffle = () => {
     setResults([]);
     setIsRaffling(false);
+    setShowModal(false);
   };
 
   return (
@@ -112,108 +116,101 @@ const NumberRaffle = () => {
         <p className="text-lg text-gray-600">Configure os parâmetros e boa sorte! 🍀</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <Card className="p-6">
-          <h3 className="text-2xl font-bold mb-6 text-center">⚙️ Configurações</h3>
-          
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="min">Número Mínimo</Label>
-                <Input
-                  id="min"
-                  type="number"
-                  value={minNumber}
-                  onChange={(e) => setMinNumber(e.target.value)}
-                  className="text-lg"
-                />
-              </div>
-              <div>
-                <Label htmlFor="max">Número Máximo</Label>
-                <Input
-                  id="max"
-                  type="number"
-                  value={maxNumber}
-                  onChange={(e) => setMaxNumber(e.target.value)}
-                  className="text-lg"
-                />
-              </div>
-            </div>
-
+      <Card className="p-6 mb-8">
+        <h3 className="text-2xl font-bold mb-6 text-center">⚙️ Configurações</h3>
+        
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="quantity">Quantos números sortear?</Label>
+              <Label htmlFor="min">Número Mínimo</Label>
               <Input
-                id="quantity"
+                id="min"
                 type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                value={minNumber}
+                onChange={(e) => setMinNumber(e.target.value)}
                 className="text-lg"
               />
             </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="avoid-repeats"
-                checked={avoidRepeats}
-                onCheckedChange={(checked) => setAvoidRepeats(checked as boolean)}
+            <div>
+              <Label htmlFor="max">Número Máximo</Label>
+              <Input
+                id="max"
+                type="number"
+                value={maxNumber}
+                onChange={(e) => setMaxNumber(e.target.value)}
+                className="text-lg"
               />
-              <Label htmlFor="avoid-repeats" className="text-sm font-medium">
-                Evitar repetições
-              </Label>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={performRaffle}
-                disabled={isRaffling}
-                className="flex-1 text-lg py-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all"
-              >
-                {isRaffling ? (
-                  <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
-                    Sorteando...
-                  </>
-                ) : (
-                  <>
-                    <Dice1 className="w-6 h-6 mr-2" />
-                    Sortear Agora!
-                  </>
-                )}
-              </Button>
-              
-              {results.length > 0 && (
-                <Button
-                  onClick={resetRaffle}
-                  variant="outline"
-                  className="px-6"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </Button>
-              )}
             </div>
           </div>
-        </Card>
 
-        <Card className="p-6">
-          <h3 className="text-2xl font-bold mb-6 text-center">🎯 Resultado</h3>
+          <div>
+            <Label htmlFor="quantity">Quantos números sortear?</Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              className="text-lg"
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="avoid-repeats"
+              checked={avoidRepeats}
+              onCheckedChange={(checked) => setAvoidRepeats(checked as boolean)}
+            />
+            <Label htmlFor="avoid-repeats" className="text-sm font-medium">
+              Evitar repetições
+            </Label>
+          </div>
+
+          <Button
+            onClick={performRaffle}
+            disabled={isRaffling}
+            className="w-full text-lg py-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all"
+          >
+            {isRaffling ? (
+              <>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
+                Sorteando...
+              </>
+            ) : (
+              <>
+                <Dice1 className="w-6 h-6 mr-2" />
+                Sortear Agora!
+              </>
+            )}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Modal de Resultado */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-blue-800">
+              🎯 Resultado do Sorteio
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {isRaffling ? "Preparando o número da sorte..." : "Parabéns! Aqui está o resultado:"}
+            </DialogDescription>
+          </DialogHeader>
           
-          {isRaffling && (
-            <div className="text-center py-12">
-              <div className="text-6xl font-bold text-blue-600 animate-number-roll mb-4">
-                {Math.floor(Math.random() * 100)}
+          <div className="text-center py-6">
+            {isRaffling ? (
+              <div>
+                <div className="text-6xl font-bold text-blue-600 animate-number-roll mb-4">
+                  {Math.floor(Math.random() * 100)}
+                </div>
+                <p className="text-lg text-gray-600 animate-pulse">
+                  Preparando o número da sorte... 🎲
+                </p>
               </div>
-              <p className="text-lg text-gray-600 animate-pulse">
-                Preparando o número da sorte... 🎲
-              </p>
-            </div>
-          )}
-
-          {results.length > 0 && !isRaffling && (
-            <div className="text-center animate-flip">
-              <div className="mb-6">
-                <p className="text-lg text-gray-600 mb-4">🎉 Parabéns! Aqui está o(s) número(s) sorteado(s):</p>
-                <div className="flex flex-wrap justify-center gap-4">
+            ) : results.length > 0 ? (
+              <div className="animate-flip">
+                <div className="flex flex-wrap justify-center gap-4 mb-6">
                   {results.map((number, index) => (
                     <div
                       key={index}
@@ -223,30 +220,35 @@ const NumberRaffle = () => {
                     </div>
                   ))}
                 </div>
+                
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    onClick={copyResults}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copiar
+                  </Button>
+                  
+                  <Button
+                    onClick={resetRaffle}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Novo Sorteio
+                  </Button>
+                </div>
               </div>
-              
-              <Button
-                onClick={copyResults}
-                variant="outline"
-                className="flex items-center gap-2 mx-auto"
-              >
-                <Copy className="w-4 h-4" />
-                Copiar Resultado
-              </Button>
-            </div>
-          )}
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-          {results.length === 0 && !isRaffling && (
-            <div className="text-center py-12 text-gray-500">
-              <Dice1 className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>Configure os parâmetros e clique em "Sortear Agora!" para ver o resultado aqui! ✨</p>
-            </div>
-          )}
-        </Card>
-      </div>
-
+      {/* Histórico */}
       {history.length > 0 && (
-        <Card className="mt-8 p-6">
+        <Card className="p-6">
           <h3 className="text-xl font-bold mb-4">📚 Histórico (Sessão Atual)</h3>
           <div className="space-y-2 max-h-40 overflow-y-auto">
             {history.slice(-5).reverse().map((entry, index) => (

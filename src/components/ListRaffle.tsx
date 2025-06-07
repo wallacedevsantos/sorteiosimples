@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { List, RotateCcw, Copy, Upload } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ const ListRaffle = () => {
   const [avoidRepeats, setAvoidRepeats] = useState(true);
   const [isRaffling, setIsRaffling] = useState(false);
   const [results, setResults] = useState<string[]>([]);
+  const [showModal, setShowModal] = useState(false);
   const [currentAnimation, setCurrentAnimation] = useState<string>("");
   const [history, setHistory] = useState<{ items: string[]; results: string[]; timestamp: Date }[]>([]);
   const { toast } = useToast();
@@ -69,6 +71,7 @@ const ListRaffle = () => {
 
     setIsRaffling(true);
     setResults([]);
+    setShowModal(true);
 
     // Animação de suspense com nomes girando
     const animationItems = [...items];
@@ -116,6 +119,7 @@ const ListRaffle = () => {
     setResults([]);
     setIsRaffling(false);
     setCurrentAnimation("");
+    setShowModal(false);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,117 +151,110 @@ const ListRaffle = () => {
         <p className="text-lg text-gray-600">Cole a lista abaixo e boa sorte! 🍀</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <Card className="p-6">
-          <h3 className="text-2xl font-bold mb-6 text-center">📝 Lista de Itens</h3>
-          
-          <div className="space-y-6">
-            <div>
-              <Label htmlFor="items">Itens (um por linha)</Label>
-              <Textarea
-                id="items"
-                placeholder={`João Silva\nMaria Santos\nPedro Oliveira\nAna Costa\n\nOu cole sua lista aqui...`}
-                value={itemsList}
-                onChange={(e) => setItemsList(e.target.value)}
-                className="min-h-[200px] text-base"
-              />
-              <p className="text-sm text-gray-500 mt-2">
-                Total de itens: {getItems().length}
-              </p>
-            </div>
-
-            <div>
-              <Label htmlFor="file-upload" className="cursor-pointer">
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-green-400 transition-colors">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <span className="text-sm text-gray-600">
-                    Clique para carregar arquivo (.txt, .csv)
-                  </span>
-                </div>
-              </Label>
-              <Input
-                id="file-upload"
-                type="file"
-                accept=".txt,.csv"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="quantity">Quantos itens sortear?</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="text-lg"
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="avoid-repeats"
-                checked={avoidRepeats}
-                onCheckedChange={(checked) => setAvoidRepeats(checked as boolean)}
-              />
-              <Label htmlFor="avoid-repeats" className="text-sm font-medium">
-                Evitar repetições
-              </Label>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={performRaffle}
-                disabled={isRaffling || getItems().length === 0}
-                className="flex-1 text-lg py-6 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 transform hover:scale-105 transition-all"
-              >
-                {isRaffling ? (
-                  <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
-                    Sorteando...
-                  </>
-                ) : (
-                  <>
-                    <List className="w-6 h-6 mr-2" />
-                    Sortear Agora!
-                  </>
-                )}
-              </Button>
-              
-              {results.length > 0 && (
-                <Button
-                  onClick={resetRaffle}
-                  variant="outline"
-                  className="px-6"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </Button>
-              )}
-            </div>
+      <Card className="p-6 mb-8">
+        <h3 className="text-2xl font-bold mb-6 text-center">📝 Lista de Itens</h3>
+        
+        <div className="space-y-6">
+          <div>
+            <Label htmlFor="items">Itens (um por linha)</Label>
+            <Textarea
+              id="items"
+              placeholder={`João Silva\nMaria Santos\nPedro Oliveira\nAna Costa\n\nOu cole sua lista aqui...`}
+              value={itemsList}
+              onChange={(e) => setItemsList(e.target.value)}
+              className="min-h-[200px] text-base"
+            />
+            <p className="text-sm text-gray-500 mt-2">
+              Total de itens: {getItems().length}
+            </p>
           </div>
-        </Card>
 
-        <Card className="p-6">
-          <h3 className="text-2xl font-bold mb-6 text-center">🎯 Resultado</h3>
-          
-          {isRaffling && (
-            <div className="text-center py-12">
-              <div className="text-2xl font-bold text-green-600 animate-bounce mb-4 h-8">
-                {currentAnimation}
+          <div>
+            <Label htmlFor="file-upload" className="cursor-pointer">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-green-400 transition-colors">
+                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                <span className="text-sm text-gray-600">
+                  Clique para carregar arquivo (.txt, .csv)
+                </span>
               </div>
-              <p className="text-lg text-gray-600 animate-pulse">
-                Girando a roleta... 🎰
-              </p>
-            </div>
-          )}
+            </Label>
+            <Input
+              id="file-upload"
+              type="file"
+              accept=".txt,.csv"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </div>
 
-          {results.length > 0 && !isRaffling && (
-            <div className="text-center animate-flip">
-              <div className="mb-6">
-                <p className="text-lg text-gray-600 mb-4">🎉 Parabéns! Aqui está(ão) o(s) sorteado(s):</p>
-                <div className="space-y-3">
+          <div>
+            <Label htmlFor="quantity">Quantos itens sortear?</Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              className="text-lg"
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="avoid-repeats"
+              checked={avoidRepeats}
+              onCheckedChange={(checked) => setAvoidRepeats(checked as boolean)}
+            />
+            <Label htmlFor="avoid-repeats" className="text-sm font-medium">
+              Evitar repetições
+            </Label>
+          </div>
+
+          <Button
+            onClick={performRaffle}
+            disabled={isRaffling || getItems().length === 0}
+            className="w-full text-lg py-6 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 transform hover:scale-105 transition-all"
+          >
+            {isRaffling ? (
+              <>
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
+                Sorteando...
+              </>
+            ) : (
+              <>
+                <List className="w-6 h-6 mr-2" />
+                Sortear Agora!
+              </>
+            )}
+          </Button>
+        </div>
+      </Card>
+
+      {/* Modal de Resultado */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-green-800">
+              🎯 Resultado do Sorteio
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {isRaffling ? "Girando a roleta..." : "Parabéns! Aqui está o resultado:"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="text-center py-6">
+            {isRaffling ? (
+              <div>
+                <div className="text-2xl font-bold text-green-600 animate-bounce mb-4 h-8">
+                  {currentAnimation}
+                </div>
+                <p className="text-lg text-gray-600 animate-pulse">
+                  Girando a roleta... 🎰
+                </p>
+              </div>
+            ) : results.length > 0 ? (
+              <div className="animate-flip">
+                <div className="space-y-3 mb-6">
                   {results.map((item, index) => (
                     <div
                       key={index}
@@ -267,30 +264,35 @@ const ListRaffle = () => {
                     </div>
                   ))}
                 </div>
+                
+                <div className="flex gap-2 justify-center">
+                  <Button
+                    onClick={copyResults}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copiar
+                  </Button>
+                  
+                  <Button
+                    onClick={resetRaffle}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Novo Sorteio
+                  </Button>
+                </div>
               </div>
-              
-              <Button
-                onClick={copyResults}
-                variant="outline"
-                className="flex items-center gap-2 mx-auto"
-              >
-                <Copy className="w-4 h-4" />
-                Copiar Resultado
-              </Button>
-            </div>
-          )}
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-          {results.length === 0 && !isRaffling && (
-            <div className="text-center py-12 text-gray-500">
-              <List className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>Cole os itens na lista e clique em "Sortear Agora!" para ver o resultado aqui! ✨</p>
-            </div>
-          )}
-        </Card>
-      </div>
-
+      {/* Histórico */}
       {history.length > 0 && (
-        <Card className="mt-8 p-6">
+        <Card className="p-6">
           <h3 className="text-xl font-bold mb-4">📚 Histórico (Sessão Atual)</h3>
           <div className="space-y-3 max-h-48 overflow-y-auto">
             {history.slice(-5).reverse().map((entry, index) => (
