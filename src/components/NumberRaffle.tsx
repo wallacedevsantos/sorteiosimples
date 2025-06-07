@@ -1,266 +1,224 @@
 
 import { useState } from "react";
+import confetti from "canvas-confetti";
+import { Dice1, RefreshCw, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dice1, RotateCcw, Copy } from "lucide-react";
-import confetti from "canvas-confetti";
-import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const NumberRaffle = () => {
-  const [minNumber, setMinNumber] = useState<string>("1");
-  const [maxNumber, setMaxNumber] = useState<string>("100");
-  const [quantity, setQuantity] = useState<string>("1");
-  const [avoidRepeats, setAvoidRepeats] = useState(true);
-  const [isRaffling, setIsRaffling] = useState(false);
+  const [min, setMin] = useState(1);
+  const [max, setMax] = useState(100);
+  const [quantity, setQuantity] = useState(1);
+  const [avoidDuplicates, setAvoidDuplicates] = useState(true);
   const [results, setResults] = useState<number[]>([]);
-  const [history, setHistory] = useState<{ min: number; max: number; results: number[]; timestamp: Date }[]>([]);
-  const { toast } = useToast();
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [usedNumbers, setUsedNumbers] = useState<Set<number>>(new Set());
 
-  const triggerConfetti = () => {
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6']
-    });
-  };
-
-  const performRaffle = async () => {
-    const min = parseInt(minNumber);
-    const max = parseInt(maxNumber);
-    const qty = parseInt(quantity);
-
-    if (isNaN(min) || isNaN(max) || isNaN(qty)) {
-      toast({
-        title: "Ops! 🤔",
-        description: "Por favor, preencha todos os campos com números válidos.",
-        variant: "destructive"
-      });
+  const generateNumbers = () => {
+    if (min > max) {
+      alert("O número mínimo deve ser menor que o máximo!");
       return;
     }
 
-    if (min >= max) {
-      toast({
-        title: "Ops! 🤔",
-        description: "O número mínimo deve ser menor que o máximo.",
-        variant: "destructive"
-      });
+    const range = max - min + 1;
+    if (avoidDuplicates && quantity > range) {
+      alert("Quantidade solicitada é maior que o intervalo disponível!");
       return;
     }
 
-    if (avoidRepeats && qty > (max - min + 1)) {
-      toast({
-        title: "Ops! 🤔",
-        description: "Não há números suficientes no intervalo para evitar repetições.",
-        variant: "destructive"
-      });
-      return;
-    }
+    setIsAnimating(true);
+    setShowResults(true);
 
-    setIsRaffling(true);
-    setResults([]);
+    // Simula animação de sorteio
+    setTimeout(() => {
+      const newResults: number[] = [];
+      const availableNumbers = avoidDuplicates 
+        ? Array.from({length: range}, (_, i) => min + i).filter(n => !usedNumbers.has(n))
+        : Array.from({length: range}, (_, i) => min + i);
 
-    // Animação de suspense
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    let raffleResults: number[] = [];
-    let availableNumbers = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-
-    for (let i = 0; i < qty; i++) {
-      if (avoidRepeats) {
+      for (let i = 0; i < quantity; i++) {
+        if (avoidDuplicates && availableNumbers.length === 0) break;
+        
         const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-        raffleResults.push(availableNumbers[randomIndex]);
-        availableNumbers.splice(randomIndex, 1);
-      } else {
-        const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
-        raffleResults.push(randomNumber);
+        const selectedNumber = availableNumbers[randomIndex];
+        newResults.push(selectedNumber);
+        
+        if (avoidDuplicates) {
+          availableNumbers.splice(randomIndex, 1);
+        }
       }
-    }
 
-    setResults(raffleResults);
-    setHistory(prev => [...prev, { min, max, results: raffleResults, timestamp: new Date() }]);
-    setIsRaffling(false);
-    triggerConfetti();
-    
-    toast({
-      title: "🎉 Resultado revelado!",
-      description: `Número(s) sorteado(s): ${raffleResults.join(', ')}`
-    });
-  };
+      setResults(newResults);
+      
+      if (avoidDuplicates) {
+        setUsedNumbers(prev => new Set([...prev, ...newResults]));
+      }
+      
+      setIsAnimating(false);
 
-  const copyResults = () => {
-    navigator.clipboard.writeText(results.join(', '));
-    toast({
-      title: "📋 Copiado!",
-      description: "Resultado copiado para a área de transferência."
-    });
+      // Confetes!
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+    }, 2000);
   };
 
   const resetRaffle = () => {
     setResults([]);
-    setIsRaffling(false);
+    setUsedNumbers(new Set());
+    setShowResults(false);
+  };
+
+  const copyResults = () => {
+    navigator.clipboard.writeText(results.join(", "));
+    alert("Resultado copiado!");
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="text-center mb-8">
-        <Dice1 className="w-16 h-16 mx-auto mb-4 text-blue-600" />
-        <h2 className="text-4xl font-bold text-blue-800 mb-2">Sorteio de Números</h2>
-        <p className="text-lg text-gray-600">Configure os parâmetros e boa sorte! 🍀</p>
-      </div>
+    <div className="max-w-2xl mx-auto">
+      <Card className="p-8 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200">
+        <div className="text-center mb-8">
+          <Dice1 className="w-16 h-16 mx-auto mb-4 text-blue-600 animate-wiggle" />
+          <h2 className="text-3xl font-bold text-blue-800 mb-2">Sorteio de Números</h2>
+          <p className="text-blue-600">Configure os parâmetros e boa sorte!</p>
+        </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <Card className="p-6">
-          <h3 className="text-2xl font-bold mb-6 text-center">⚙️ Configurações</h3>
-          
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="min">Número Mínimo</Label>
-                <Input
-                  id="min"
-                  type="number"
-                  value={minNumber}
-                  onChange={(e) => setMinNumber(e.target.value)}
-                  className="text-lg"
-                />
-              </div>
-              <div>
-                <Label htmlFor="max">Número Máximo</Label>
-                <Input
-                  id="max"
-                  type="number"
-                  value={maxNumber}
-                  onChange={(e) => setMaxNumber(e.target.value)}
-                  className="text-lg"
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="quantity">Quantos números sortear?</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className="text-lg"
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="avoid-repeats"
-                checked={avoidRepeats}
-                onCheckedChange={(checked) => setAvoidRepeats(checked as boolean)}
-              />
-              <Label htmlFor="avoid-repeats" className="text-sm font-medium">
-                Evitar repetições
-              </Label>
-            </div>
-
-            <div className="flex gap-3">
-              <Button
-                onClick={performRaffle}
-                disabled={isRaffling}
-                className="flex-1 text-lg py-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all"
-              >
-                {isRaffling ? (
-                  <>
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
-                    Sorteando...
-                  </>
-                ) : (
-                  <>
-                    <Dice1 className="w-6 h-6 mr-2" />
-                    Sortear Agora!
-                  </>
-                )}
-              </Button>
-              
-              {results.length > 0 && (
-                <Button
-                  onClick={resetRaffle}
-                  variant="outline"
-                  className="px-6"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </Button>
-              )}
-            </div>
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div>
+            <Label htmlFor="min" className="text-blue-700 font-medium">Número Mínimo</Label>
+            <Input
+              id="min"
+              type="number"
+              value={min}
+              onChange={(e) => setMin(Number(e.target.value))}
+              className="mt-2 border-blue-200 focus:border-blue-400"
+            />
           </div>
-        </Card>
 
-        <Card className="p-6">
-          <h3 className="text-2xl font-bold mb-6 text-center">🎯 Resultado</h3>
-          
-          {isRaffling && (
-            <div className="text-center py-12">
-              <div className="text-6xl font-bold text-blue-600 animate-number-roll mb-4">
-                {Math.floor(Math.random() * 100)}
-              </div>
-              <p className="text-lg text-gray-600 animate-pulse">
-                Preparando o número da sorte... 🎲
-              </p>
-            </div>
+          <div>
+            <Label htmlFor="max" className="text-blue-700 font-medium">Número Máximo</Label>
+            <Input
+              id="max"
+              type="number"
+              value={max}
+              onChange={(e) => setMax(Number(e.target.value))}
+              className="mt-2 border-blue-200 focus:border-blue-400"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="quantity" className="text-blue-700 font-medium">Quantidade</Label>
+            <Input
+              id="quantity"
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(Number(e.target.value))}
+              className="mt-2 border-blue-200 focus:border-blue-400"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2 mb-8">
+          <Checkbox
+            id="avoid-duplicates"
+            checked={avoidDuplicates}
+            onCheckedChange={(checked) => setAvoidDuplicates(checked as boolean)}
+          />
+          <Label htmlFor="avoid-duplicates" className="text-blue-700">
+            Evitar repetições
+          </Label>
+        </div>
+
+        <div className="flex gap-4 justify-center">
+          <Button
+            onClick={generateNumbers}
+            disabled={isAnimating}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-bold"
+          >
+            {isAnimating ? (
+              <>
+                <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                Sorteando...
+              </>
+            ) : (
+              <>
+                <Dice1 className="w-5 h-5 mr-2" />
+                Sortear Agora!
+              </>
+            )}
+          </Button>
+
+          {results.length > 0 && (
+            <Button
+              onClick={resetRaffle}
+              variant="outline"
+              className="border-blue-300 text-blue-600 hover:bg-blue-50"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Resetar
+            </Button>
           )}
+        </div>
+      </Card>
 
-          {results.length > 0 && !isRaffling && (
-            <div className="text-center animate-flip">
-              <div className="mb-6">
-                <p className="text-lg text-gray-600 mb-4">🎉 Parabéns! Aqui está o(s) número(s) sorteado(s):</p>
-                <div className="flex flex-wrap justify-center gap-4">
-                  {results.map((number, index) => (
-                    <div
-                      key={index}
-                      className="bg-gradient-to-r from-green-400 to-blue-500 text-white text-4xl font-bold py-4 px-6 rounded-full shadow-lg animate-bounce-slow"
-                    >
-                      {number}
-                    </div>
-                  ))}
+      {/* Modal de Resultado */}
+      <Dialog open={showResults} onOpenChange={setShowResults}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-blue-800">
+              🎉 Resultado do Sorteio! 🎉
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="text-center py-6">
+            {isAnimating ? (
+              <div className="space-y-4">
+                <div className="text-6xl font-black animate-number-roll text-blue-600">
+                  {Math.floor(Math.random() * (max - min + 1)) + min}
+                </div>
+                <p className="text-lg text-gray-600">Sorteando...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <div className="text-5xl font-black text-blue-600 mb-4 animate-flip">
+                    {results.join(" • ")}
+                  </div>
+                  <p className="text-lg text-gray-600 mb-6">
+                    {quantity === 1 ? "Número sorteado:" : "Números sorteados:"}
+                  </p>
+                </div>
+
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    onClick={copyResults}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copiar
+                  </Button>
+                  
+                  <Button
+                    onClick={() => setShowResults(false)}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Fechar
+                  </Button>
                 </div>
               </div>
-              
-              <Button
-                onClick={copyResults}
-                variant="outline"
-                className="flex items-center gap-2 mx-auto"
-              >
-                <Copy className="w-4 h-4" />
-                Copiar Resultado
-              </Button>
-            </div>
-          )}
-
-          {results.length === 0 && !isRaffling && (
-            <div className="text-center py-12 text-gray-500">
-              <Dice1 className="w-16 h-16 mx-auto mb-4 opacity-50" />
-              <p>Configure os parâmetros e clique em "Sortear Agora!" para ver o resultado aqui! ✨</p>
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {history.length > 0 && (
-        <Card className="mt-8 p-6">
-          <h3 className="text-xl font-bold mb-4">📚 Histórico (Sessão Atual)</h3>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {history.slice(-5).reverse().map((entry, index) => (
-              <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                <span>Intervalo: {entry.min} - {entry.max}</span>
-                <span className="font-bold text-blue-600">Resultado: {entry.results.join(', ')}</span>
-                <span className="text-xs text-gray-500">
-                  {entry.timestamp.toLocaleTimeString()}
-                </span>
-              </div>
-            ))}
+            )}
           </div>
-        </Card>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
