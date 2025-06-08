@@ -15,9 +15,9 @@ const Index = () => {
     <header className="bg-white/90 shadow-lg sticky top-0 z-10 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Trophy className="w-8 h-8 text-yellow-500" />
+          <img src="/favicon.svg" alt="Logo Sorteio Simples" className="h-8 w-8" />
           <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-            Sorteio Show
+            Sorteio Simples
           </h1>
         </div>
         
@@ -56,11 +56,10 @@ const Index = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Trophy className="w-6 h-6 text-yellow-500" />
-            <span className="text-xl font-bold text-gray-700">Sorteio Show</span>
+            <span className="text-xl font-bold text-gray-700">Sorteio Simples</span>
           </div>
           <p className="text-gray-600 mb-4">
-            Sorteios simples, rápidos e divertidos! ✨
+            Faça sorteios de forma simples e rápida ✨
           </p>
           <div className="flex items-center justify-center gap-1 text-sm text-gray-500">
             <span>Feito com</span>
@@ -79,15 +78,14 @@ const Index = () => {
       <main className="flex-1 flex items-center justify-center p-4 pt-12">
         <div className="text-center max-w-4xl w-full">
           <div className="animate-bounce-slow mb-12">
-            <Trophy className="w-32 h-32 mx-auto text-yellow-500 mb-6" />
           </div>
           
           <h2 className="text-6xl md:text-8xl font-black mb-6 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse-fast">
-            Sorteio Show
+            Sorteio Simples
           </h2>
           
           <p className="text-xl md:text-2xl text-gray-600 mb-16 font-medium">
-            🎉 Vamos descobrir quem teve sorte? 🎉
+            🎉 Vamos descobrir quem tem a sorte ao seu lado? 🎉
           </p>
           
           <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto mb-16">

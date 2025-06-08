@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,9 +17,34 @@ const NumberRaffle = () => {
   const [avoidRepeats, setAvoidRepeats] = useState(true);
   const [isRaffling, setIsRaffling] = useState(false);
   const [results, setResults] = useState<number[]>([]);
+  const [displayNumber, setDisplayNumber] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [history, setHistory] = useState<{ min: number; max: number; results: number[]; timestamp: Date }[]>([]);
   const { toast } = useToast();
+
+  // Efeito para a animação de rolagem de números
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRaffling) {
+      interval = setInterval(() => {
+        const min = parseInt(minNumber);
+        const max = parseInt(maxNumber);
+        if (!isNaN(min) && !isNaN(max) && max >= min) {
+          setDisplayNumber(Math.floor(Math.random() * (max - min + 1)) + min);
+        } else {
+          setDisplayNumber(Math.floor(Math.random() * 100)); // Fallback if min/max are invalid
+        }
+      }, 100); // Atualiza a cada 100ms
+    } else {
+      if (results.length > 0) {
+        setDisplayNumber(results[0]); // Exibe o primeiro resultado quando o sorteio termina
+      } else {
+        setDisplayNumber(null);
+      }
+    }
+
+    return () => clearInterval(interval);
+  }, [isRaffling, minNumber, maxNumber, results]);
 
   const triggerConfetti = () => {
     confetti({
@@ -65,6 +90,7 @@ const NumberRaffle = () => {
     setIsRaffling(true);
     setResults([]);
     setShowModal(true);
+    setDisplayNumber(null); // Reset display number at the start of raffle
 
     // Animação de suspense
     await new Promise(resolve => setTimeout(resolve, 2000));
@@ -109,82 +135,109 @@ const NumberRaffle = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4">
       <div className="text-center mb-8">
-        <Dice1 className="w-16 h-16 mx-auto mb-4 text-blue-600" />
         <h2 className="text-4xl font-bold text-blue-800 mb-2">Sorteio de Números</h2>
         <p className="text-lg text-gray-600">Configure os parâmetros e boa sorte! 🍀</p>
       </div>
 
-      <Card className="p-6 mb-8">
-        <h3 className="text-2xl font-bold mb-6 text-center">⚙️ Configurações</h3>
-        
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+      <div className="flex flex-col lg:flex-row gap-8">
+        <Card className="p-6 mb-8 lg:mb-0 lg:flex-1">
+          <h3 className="text-2xl font-bold mb-6 text-center">⚙️ Configurações</h3>
+          
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="min">Número Mínimo</Label>
+                <Input
+                  id="min"
+                  type="number"
+                  value={minNumber}
+                  onChange={(e) => setMinNumber(e.target.value)}
+                  className="text-lg"
+                />
+              </div>
+              <div>
+                <Label htmlFor="max">Número Máximo</Label>
+                <Input
+                  id="max"
+                  type="number"
+                  value={maxNumber}
+                  onChange={(e) => setMaxNumber(e.target.value)}
+                  className="text-lg"
+                />
+              </div>
+            </div>
+
             <div>
-              <Label htmlFor="min">Número Mínimo</Label>
+              <Label htmlFor="quantity">Quantos números sortear?</Label>
               <Input
-                id="min"
+                id="quantity"
                 type="number"
-                value={minNumber}
-                onChange={(e) => setMinNumber(e.target.value)}
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
                 className="text-lg"
               />
             </div>
-            <div>
-              <Label htmlFor="max">Número Máximo</Label>
-              <Input
-                id="max"
-                type="number"
-                value={maxNumber}
-                onChange={(e) => setMaxNumber(e.target.value)}
-                className="text-lg"
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="avoid-repeats"
+                checked={avoidRepeats}
+                onCheckedChange={(checked) => setAvoidRepeats(checked as boolean)}
               />
+              <Label htmlFor="avoid-repeats" className="text-sm font-medium">
+                Evitar repetições
+              </Label>
             </div>
-          </div>
 
-          <div>
-            <Label htmlFor="quantity">Quantos números sortear?</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="text-lg"
-            />
+            <Button
+              onClick={performRaffle}
+              disabled={isRaffling}
+              className="w-full text-lg py-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all"
+            >
+              {isRaffling ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
+                  Sorteando...
+                </>
+              ) : (
+                <>
+                  <Dice1 className="w-6 h-6 mr-2" />
+                  Sortear Agora!
+                </>
+              )}
+            </Button>
           </div>
+        </Card>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="avoid-repeats"
-              checked={avoidRepeats}
-              onCheckedChange={(checked) => setAvoidRepeats(checked as boolean)}
-            />
-            <Label htmlFor="avoid-repeats" className="text-sm font-medium">
-              Evitar repetições
-            </Label>
-          </div>
-
-          <Button
-            onClick={performRaffle}
-            disabled={isRaffling}
-            className="w-full text-lg py-6 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105 transition-all"
-          >
-            {isRaffling ? (
-              <>
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
-                Sorteando...
-              </>
-            ) : (
-              <>
-                <Dice1 className="w-6 h-6 mr-2" />
-                Sortear Agora!
-              </>
-            )}
-          </Button>
-        </div>
-      </Card>
+        {/* Histórico */}
+         <Card className="p-6 lg:flex-1">
+          <h3 className="text-xl font-bold mb-4">📚 Histórico (Sessão Atual)</h3>
+          {history.length > 0 ? (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {history.slice(-10).reverse().map((entry, index) => (
+                <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-sm text-gray-600">
+                      Intervalo: {entry.min} - {entry.max}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {entry.timestamp.toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <div className="font-bold text-blue-600">
+                    Resultado: {entry.results.join(', ')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">Nenhum sorteio realizado ainda.</p>
+          )}
+        </Card>
+      </div>
 
       {/* Modal de Resultado */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
@@ -202,7 +255,7 @@ const NumberRaffle = () => {
             {isRaffling ? (
               <div>
                 <div className="text-6xl font-bold text-blue-600 animate-number-roll mb-4">
-                  {Math.floor(Math.random() * 100)}
+                  {displayNumber !== null ? displayNumber : Math.floor(Math.random() * 100)}
                 </div>
                 <p className="text-lg text-gray-600 animate-pulse">
                   Preparando o número da sorte... 🎲
@@ -246,23 +299,7 @@ const NumberRaffle = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Histórico */}
-      {history.length > 0 && (
-        <Card className="p-6">
-          <h3 className="text-xl font-bold mb-4">📚 Histórico (Sessão Atual)</h3>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {history.slice(-5).reverse().map((entry, index) => (
-              <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                <span>Intervalo: {entry.min} - {entry.max}</span>
-                <span className="font-bold text-blue-600">Resultado: {entry.results.join(', ')}</span>
-                <span className="text-xs text-gray-500">
-                  {entry.timestamp.toLocaleTimeString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+
     </div>
   );
 };

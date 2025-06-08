@@ -20,6 +20,8 @@ const ListRaffle = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentAnimation, setCurrentAnimation] = useState<string>("");
   const [history, setHistory] = useState<{ items: string[]; results: string[]; timestamp: Date }[]>([]);
+  const [hideSensitiveData, setHideSensitiveData] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
   const { toast } = useToast();
 
   const triggerConfetti = () => {
@@ -36,6 +38,62 @@ const ListRaffle = () => {
       .split('\n')
       .map(item => item.trim())
       .filter(item => item.length > 0);
+  };
+
+  const maskSensitiveData = (data: string) => {
+    if (!hideSensitiveData) return data;
+
+    const originalChars = data.split('');
+    const maskableChars: { char: string; index: number }[] = [];
+    const nonMaskableChars: { char: string; index: number }[] = [];
+
+    for (let i = 0; i < originalChars.length; i++) {
+      const char = originalChars[i];
+      if (/[a-zA-Z0-9]/.test(char)) {
+        maskableChars.push({ char, index: i });
+      } else {
+        nonMaskableChars.push({ char, index: i });
+      }
+    }
+
+    const len = maskableChars.length;
+    let maskedMaskableData = '';
+
+    if (len < 7) {
+      if (len <= 4) {
+        maskedMaskableData = 'X'.repeat(len);
+      } else {
+        const maskedPartLen = len - 4;
+        maskedMaskableData = maskableChars.slice(0, 2).map(c => c.char).join('') +
+                             'X'.repeat(maskedPartLen) +
+                             maskableChars.slice(len - 2).map(c => c.char).join('');
+      }
+    } else if (len < 10) {
+      const maskedPartLen = len - 5;
+      maskedMaskableData = maskableChars.slice(0, 3).map(c => c.char).join('') +
+                           'X'.repeat(maskedPartLen) +
+                           maskableChars.slice(len - 2).map(c => c.char).join('');
+    } else {
+      const maskedPartLen = len - 7;
+      maskedMaskableData = maskableChars.slice(0, 5).map(c => c.char).join('') +
+                           'X'.repeat(maskedPartLen) +
+                           maskableChars.slice(len - 2).map(c => c.char).join('');
+    }
+
+    const resultChars: string[] = Array(originalChars.length).fill('');
+    let maskedIndex = 0;
+
+    for (let i = 0; i < originalChars.length; i++) {
+      const char = originalChars[i];
+      if (/[a-zA-Z0-9]/.test(char)) {
+        resultChars[i] = maskedMaskableData[maskedIndex];
+        maskedIndex++;
+      } else {
+        resultChars[i] = char;
+      }
+    }
+
+    return resultChars.join('');
   };
 
   const performRaffle = async () => {
@@ -77,7 +135,8 @@ const ListRaffle = () => {
     const animationItems = [...items];
     for (let i = 0; i < 20; i++) {
       const randomItem = animationItems[Math.floor(Math.random() * animationItems.length)];
-      setCurrentAnimation(randomItem);
+      const maskedItem = maskSensitiveData(randomItem);
+      setCurrentAnimation(maskedItem);
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
@@ -138,97 +197,179 @@ const ListRaffle = () => {
           title: "📁 Arquivo carregado!",
           description: `${file.name} foi importado com sucesso.`
         });
+        setFileName(file.name);
+        setHideSensitiveData(true);
       };
       reader.readAsText(file);
+
+      // Limpa o valor do input para permitir o carregamento do mesmo arquivo novamente
+      event.target.value = '';
     }
   };
 
+  const handleRemoveFile = () => {
+    setItemsList("");
+    setFileName(null);
+    toast({
+      title: "🗑️ Arquivo removido!",
+      description: "A lista de itens foi limpa e o campo de texto está disponível novamente."
+    });
+  };
+
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto px-4">
       <div className="text-center mb-8">
-        <List className="w-16 h-16 mx-auto mb-4 text-green-600" />
         <h2 className="text-4xl font-bold text-green-800 mb-2">Sorteio de Lista</h2>
         <p className="text-lg text-gray-600">Cole a lista abaixo e boa sorte! 🍀</p>
       </div>
 
-      <Card className="p-6 mb-8">
-        <h3 className="text-2xl font-bold mb-6 text-center">📝 Lista de Itens</h3>
-        
-        <div className="space-y-6">
-          <div>
-            <Label htmlFor="items">Itens (um por linha)</Label>
-            <Textarea
-              id="items"
-              placeholder={`João Silva\nMaria Santos\nPedro Oliveira\nAna Costa\n\nOu cole sua lista aqui...`}
-              value={itemsList}
-              onChange={(e) => setItemsList(e.target.value)}
-              className="min-h-[200px] text-base"
-            />
-            <p className="text-sm text-gray-500 mt-2">
-              Total de itens: {getItems().length}
-            </p>
-          </div>
-
-          <div>
-            <Label htmlFor="file-upload" className="cursor-pointer">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-green-400 transition-colors">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <span className="text-sm text-gray-600">
-                  Clique para carregar arquivo (.txt, .csv)
-                </span>
+      <div className="flex flex-col lg:flex-row gap-8">
+        <Card className="p-6 mb-8 lg:mb-0 lg:flex-1">
+          <h3 className="text-2xl font-bold mb-6 text-center">📝 Lista de Itens</h3>
+          
+          <div className="space-y-6">
+            {fileName ? (
+              <div className="border-2 border-dashed border-green-400 rounded-lg p-4 text-center bg-green-50">
+                <p className="text-lg font-semibold text-green-700 mb-2">Arquivo Carregado:</p>
+                <p className="text-md text-gray-800">{fileName}</p>
+                <Button
+                  onClick={handleRemoveFile}
+                  variant="outline"
+                  className="mt-4 flex items-center gap-2 text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Remover Arquivo
+                </Button>
               </div>
-            </Label>
-            <Input
-              id="file-upload"
-              type="file"
-              accept=".txt,.csv"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="quantity">Quantos itens sortear?</Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className="text-lg"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="avoid-repeats"
-              checked={avoidRepeats}
-              onCheckedChange={(checked) => setAvoidRepeats(checked as boolean)}
-            />
-            <Label htmlFor="avoid-repeats" className="text-sm font-medium">
-              Evitar repetições
-            </Label>
-          </div>
-
-          <Button
-            onClick={performRaffle}
-            disabled={isRaffling || getItems().length === 0}
-            className="w-full text-lg py-6 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 transform hover:scale-105 transition-all"
-          >
-            {isRaffling ? (
-              <>
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
-                Sorteando...
-              </>
             ) : (
               <>
-                <List className="w-6 h-6 mr-2" />
-                Sortear Agora!
+                <div>
+                  <Label htmlFor="items">Itens (um por linha)</Label>
+                  <Textarea
+                    id="items"
+                    placeholder={`João Silva\nMaria Santos\nPedro Oliveira\nOu cole sua lista aqui...`}
+                    value={itemsList}
+                    onChange={(e) => setItemsList(e.target.value)}
+                    className="min-h-[150px] text-base"
+                    disabled={!!fileName}
+                  />
+                  <p className="text-sm text-gray-500 mt-2">
+                    Total de itens: {getItems().length}
+                  </p>
+                  <div className="flex items-center p-2 text-yellow-800 bg-yellow-100 rounded-lg dark:bg-yellow-200 dark:text-yellow-800" role="alert">
+                    <svg className="flex-shrink-0 w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                    </svg>
+                    <span className="sr-only">Info</span>
+                    <div className="ml-3 text-sm font-medium">
+                      Evite inserir dados sensíveis (CPF, telefone, etc.) diretamente. Para isso, use a opção de carregar arquivo.
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="file-upload" className="cursor-pointer">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-green-400 transition-colors">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <span className="text-sm text-gray-600">
+                        Clique para carregar arquivo (.txt, .csv)
+                      </span>
+                    </div>
+                  </Label>
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".txt,.csv"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
               </>
             )}
-          </Button>
-        </div>
-      </Card>
+
+            <div>
+              <Label htmlFor="quantity">Quantos itens sortear?</Label>
+              <Input
+                id="quantity"
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className="text-lg"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="avoid-repeats"
+                checked={avoidRepeats}
+                onCheckedChange={(checked) => setAvoidRepeats(checked as boolean)}
+              />
+              <Label htmlFor="avoid-repeats" className="text-sm font-medium">
+                Evitar repetições
+              </Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="hide-sensitive-data"
+                checked={hideSensitiveData}
+                onCheckedChange={(checked) => setHideSensitiveData(checked as boolean)}
+              />
+              <Label htmlFor="hide-sensitive-data" className="text-sm font-medium">
+                Ocultar dados sensíveis
+              </Label>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Recomendado para listas com dados sensíveis (CPF, telefone, etc.) ao carregar um arquivo.
+            </p>
+
+            <Button
+              onClick={performRaffle}
+               disabled={isRaffling || getItems().length === 0}
+              className="w-full text-lg py-6 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 transform hover:scale-105 transition-all"
+            >
+              {isRaffling ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-2"></div>
+                  Sorteando...
+                </>
+              ) : (
+                <>
+                  <List className="w-6 h-6 mr-2" />
+                  Sortear Agora!
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
+
+        {/* Histórico */}
+        <Card className="p-6 lg:flex-1">
+          <h3 className="text-xl font-bold mb-4">📚 Histórico (Sessão Atual)</h3>
+          {history.length > 0 ? (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {history.slice(-10).reverse().map((entry, index) => (
+                <div key={index} className="bg-gray-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-sm text-gray-600">
+                      Lista com {entry.items.length} item(s)
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {entry.timestamp.toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <div className="font-bold text-green-600">
+                    Resultado: {entry.results.map(maskSensitiveData).join(', ')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-8">Nenhum sorteio realizado ainda.</p>
+          )}
+        </Card>
+      </div>
 
       {/* Modal de Resultado */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
@@ -260,7 +401,7 @@ const ListRaffle = () => {
                       key={index}
                       className="bg-gradient-to-r from-green-400 to-blue-500 text-white text-xl font-bold py-3 px-6 rounded-lg shadow-lg animate-bounce-slow"
                     >
-                      🏆 {item}
+                      🏆 {maskSensitiveData(item)}
                     </div>
                   ))}
                 </div>
@@ -289,30 +430,6 @@ const ListRaffle = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Histórico */}
-      {history.length > 0 && (
-        <Card className="p-6">
-          <h3 className="text-xl font-bold mb-4">📚 Histórico (Sessão Atual)</h3>
-          <div className="space-y-3 max-h-48 overflow-y-auto">
-            {history.slice(-5).reverse().map((entry, index) => (
-              <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="text-sm text-gray-600">
-                    Lista com {entry.items.length} item(s)
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {entry.timestamp.toLocaleTimeString()}
-                  </span>
-                </div>
-                <div className="font-bold text-green-600">
-                  Resultado: {entry.results.join(', ')}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
     </div>
   );
 };
