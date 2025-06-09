@@ -15,7 +15,7 @@ const Index = () => {
     <header className="bg-white/90 shadow-lg sticky top-0 z-10 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src="/favicon.svg" alt="Logo Sorteio Simples" className="h-8 w-8" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="Logo Sorteio Simples" className="h-8 w-8" />
           <h1 className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
             Sorteio Simples
           </h1>
